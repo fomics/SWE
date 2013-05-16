@@ -43,15 +43,15 @@
 //  2: Approximate Augmented Riemann solver
 //  3: Approximate Augmented Riemann solver which uses the underlying Fortran routines of GeoClaw directly.
 #if WAVE_PROPAGATION_SOLVER==1
-#include "solvers/FWave.hpp"
+#include "solver/FWave.hpp"
 #elif WAVE_PROPAGATION_SOLVER==2
-#include "solvers/AugRie.hpp"
+#include "solver/AugRie.hpp"
 #elif WAVE_PROPAGATION_SOLVER==3
-#include "solvers/AugRieGeoClaw.hpp"
+#include "solver/AugRieGeoClaw.hpp"
 #elif WAVE_PROPAGATION_SOLVER==4
-#include "solvers/FWaveVec.hpp"
+#include "solver/FWaveVec.hpp"
 #else
-#include "solvers/Hybrid.hpp"
+#include "solver/Hybrid.hpp"
 #endif
 
 /**
