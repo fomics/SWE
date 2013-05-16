@@ -35,8 +35,10 @@
 #include <iostream>
 #include <limits>
 
-#include <unistd.h>
-#include <sys/ioctl.h>
+#ifndef WIN32
+ #include <unistd.h>
+ #include <sys/ioctl.h>
+#endif
 
 namespace tools
 {
