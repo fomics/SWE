@@ -17,6 +17,24 @@ if(COMMAND cmake_policy)
   cmake_policy(SET CMP0017 NEW)
 endif(COMMAND cmake_policy)
 
+#-----------------------------------------------------------------------------
+# Setup output Directories
+#-----------------------------------------------------------------------------
+SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY
+    ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all Executables."
+)
+SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY
+    ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all Libraries"
+)
+SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+    ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all static libraries."
+)
+MARK_AS_ADVANCED(
+  CMAKE_RUNTIME_OUTPUT_DIRECTORY 
+  CMAKE_LIBRARY_OUTPUT_DIRECTORY 
+  CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+)
+
 #--------------------------------------------------------------------------
 # provide a parallelization option for user selection 
 #--------------------------------------------------------------------------
