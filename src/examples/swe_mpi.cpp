@@ -73,7 +73,7 @@
  * @return number of block rows
  */
 int computeNumberOfBlockRows(int i_numberOfProcesses) {
-  int l_numberOfRows = std::sqrt(i_numberOfProcesses);
+  int l_numberOfRows = std::sqrt(static_cast<float>(i_numberOfProcesses));
   while (i_numberOfProcesses % l_numberOfRows != 0) l_numberOfRows--;
   return l_numberOfRows;
 };
