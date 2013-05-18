@@ -46,7 +46,7 @@
 #ifdef ASAGI
 #include "scenarios/SWE_AsagiScenario.hh"
 #else
-#include "scenarios/SWE_simple_scenarios.hh"
+#include "scenarios/benchmarks.hh"
 #endif
 
 #ifdef READXML
@@ -128,11 +128,11 @@ int main( int argc, char** argv ) {
                                 (float) 28800., simulationArea);
   #else
   // create a simple artificial scenario
-  SWE_BathymetryDamBreakScenario l_scenario;
+  SWE_DamBreakWetDryRotated l_scenario;
   #endif
 
   //! number of checkpoints for visualization (at each checkpoint in time, an output file is written).
-  int l_numberOfCheckPoints = 20;
+  int l_numberOfCheckPoints = 80;
 
   //! size of a single cell in x- and y-direction
   float l_dX, l_dY;

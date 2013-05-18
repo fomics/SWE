@@ -279,13 +279,10 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
 #endif
 
 	if(maxWaveSpeed > 0.00001) {
-		//TODO zeroTol
-
 		//compute the time step width
 		//CFL-Codition
 		//(max. wave speed) * dt / dx < .5
 		// => dt = .5 * dx/(max wave speed)
-
 		maxTimestep = std::min( dx/maxWaveSpeed, dy/maxWaveSpeed );
 
 			maxTimestep *= (float) .4; //CFL-number = .5
@@ -323,19 +320,8 @@ void SWE_WavePropagationBlock::updateUnknowns(float dt) {
 
 
 			if (h[i][j] < 0) {
-				//TODO: dryTol
-#ifndef NDEBUG
-				// Only print this warning when debug is enabled
-				// Otherwise we cannot vectorize this loop
-				if (h[i][j] < -0.1) {
-					std::cerr << "Warning, negative height: (i,j)=(" << i << "," << j << ")=" << h[i][j] << std::endl;
-					std::cerr << "         b: " << b[i][j] << std::endl;
-				}
-#endif // NDEBUG
-				//zero (small) negative depths
-				h[i][j] = hu[i][j] = hv[i][j] = 0.;
-			} else if (h[i][j] < 0.1)
-				hu[i][j] = hv[i][j] = 0.; //no water, no speed!
+        assert(false);
+      }
 		}
 	}
 }
