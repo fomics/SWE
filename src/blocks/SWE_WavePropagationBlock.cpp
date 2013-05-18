@@ -31,9 +31,18 @@
 #include <cassert>
 #include <string>
 #include <limits>
+#include <cmath>
 
 #ifdef LOOP_OPENMP
 #include <omp.h>
+#endif
+
+#ifndef DRYTOL
+#define DRYTOL 0.001
+#endif
+
+#ifndef GRAVITY
+#define GRAVITY 9.81
 #endif
 
 /**
@@ -138,16 +147,47 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
 
 			float maxEdgeSpeed;
 
-			#if WAVE_PROPAGATION_SOLVER!=3
+#if WAVE_PROPAGATION_SOLVER!=3
 				wavePropagationSolver.computeNetUpdates( h[i-1][j], h[i][j],
                                                hu[i-1][j], hu[i][j],
                                                b[i-1][j], b[i][j],
                                                hNetUpdatesLeft[i-1][j-1], hNetUpdatesRight[i-1][j-1],
                                                huNetUpdatesLeft[i-1][j-1], huNetUpdatesRight[i-1][j-1],
                                                maxEdgeSpeed );
-			#else // WAVE_PROPAGATION_SOLVER!=3
-				#error "Solver not implemented in SWE_WavePropagationBlock"
-			#endif // WAVE_PROPAGATION_SOLVER!=3
+#else // WAVE_PROPAGATION_SOLVER!=3
+       double l_variablesLeft[3];
+       double l_variablesRight[3];
+       double l_netUpdatesLeft[3];
+       double l_netUpdatesRight[3];
+       double l_waveSpeeds[3];
+
+       // set up states
+       l_variablesLeft[0] = h[i-1][j];
+       l_variablesLeft[1] = hu[i-1][j];
+       l_variablesLeft[2] = b[i-1][j];
+
+       l_variablesRight[0] = h[i][j];
+       l_variablesRight[1] = hu[i][j];
+       l_variablesRight[2] = b[i][j];
+
+       // call the fortran solver
+       c_bind_geoclaw_riemann_aug_JCP( 1,
+                                       l_variablesLeft, l_variablesRight,
+                                       DRYTOL, GRAVITY,
+                                       l_netUpdatesLeft, l_netUpdatesRight,
+                                       l_waveSpeeds
+                                     );
+
+       // set net updates
+       hNetUpdatesLeft[i-1][j-1] = l_netUpdatesLeft[0];
+       huNetUpdatesLeft[i-1][j-1] = l_netUpdatesLeft[1];
+
+       hNetUpdatesRight[i-1][j-1] = l_netUpdatesRight[0];
+       huNetUpdatesRight[i-1][j-1] = l_netUpdatesRight[1];
+
+       // compute maximum wave speed of first and third wave
+       maxEdgeSpeed = std::max( std::abs(l_waveSpeeds[0]), std::abs(l_waveSpeeds[2]) );
+#endif // WAVE_PROPAGATION_SOLVER!=3
 
 			#ifdef LOOP_OPENMP
 				//update the thread-local maximum wave speed
@@ -184,9 +224,40 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
                                                hNetUpdatesBelow[i-1][j-1], hNetUpdatesAbove[i-1][j-1],
                                                hvNetUpdatesBelow[i-1][j-1], hvNetUpdatesAbove[i-1][j-1],
                                                maxEdgeSpeed );
-			#else // WAVE_PROPAGATION_SOLVER!=3
-				#error "Solver not implemented in SWE_WavePropagationBlock"
-			#endif // WAVE_PROPAGATION_SOLVER!=3
+#else // WAVE_PROPAGATION_SOLVER!=3
+       double l_variablesLeft[3];
+       double l_variablesRight[3];
+       double l_netUpdatesLeft[3];
+       double l_netUpdatesRight[3];
+       double l_waveSpeeds[3];
+
+       // set up states
+       l_variablesLeft[0] = h[i][j-1];
+       l_variablesLeft[1] = hv[i][j-1];
+       l_variablesLeft[2] = b[i][j-1];
+
+       l_variablesRight[0] = h[i][j];
+       l_variablesRight[1] = hv[i][j];
+       l_variablesRight[2] = b[i][j];
+
+       // call the fortran solver
+       c_bind_geoclaw_riemann_aug_JCP( 1,
+                                       l_variablesLeft, l_variablesRight,
+                                       DRYTOL, GRAVITY,
+                                       l_netUpdatesLeft, l_netUpdatesRight,
+                                       l_waveSpeeds
+                                     );
+
+       // set net updates
+       hNetUpdatesBelow[i-1][j-1] = l_netUpdatesLeft[0];
+       hvNetUpdatesBelow[i-1][j-1] = l_netUpdatesLeft[1];
+
+       hNetUpdatesAbove[i-1][j-1] = l_netUpdatesRight[0];
+       hvNetUpdatesAbove[i-1][j-1] = l_netUpdatesRight[1];
+
+       // compute maximum wave speed of first and third wave
+       maxEdgeSpeed = std::max( std::abs(l_waveSpeeds[0]), std::abs(l_waveSpeeds[2]) );
+#endif // WAVE_PROPAGATION_SOLVER!=3
 
 			#ifdef LOOP_OPENMP
 				//update the thread-local maximum wave speed
@@ -217,13 +288,7 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
 
 		maxTimestep = std::min( dx/maxWaveSpeed, dy/maxWaveSpeed );
 
-		#if WAVE_PROPAGATION_SOLVER!=3
 			maxTimestep *= (float) .4; //CFL-number = .5
-		#else // WAVE_PROPAGATION_SOLVER!=3
-			#error "Solver not implemented in SWE_WavePropagationBlock"
-			// TODO
-			// dt *= (float) .8; //CFL-number = 1. (wave limiters)
-    	#endif // WAVE_PROPAGATION_SOLVER!=3
 	} else
 		//might happen in dry cells
 		maxTimestep = std::numeric_limits<float>::max();

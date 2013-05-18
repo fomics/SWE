@@ -74,8 +74,7 @@ class SWE_WavePropagationBlock: public SWE_Block {
     //! Approximate Augmented Riemann solver
     solver::AugRie<float> wavePropagationSolver;
 #elif WAVE_PROPAGATION_SOLVER==3
-    //! Approximate Augmented Riemann solver
-    solver::AugRieGeoClaw<double> wavePropagationSolver;
+    // we call the c-binding of the Fortan solver.
 #elif WAVE_PROPAGATION_SOLVER==4
     //! Vectorized FWave solver
     solver::FWaveVec<float> wavePropagationSolver;

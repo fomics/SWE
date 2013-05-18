@@ -91,8 +91,8 @@ vars.AddVariables(
 
   PathVariable( 'asagiInputDir', 'location of netcdf input files', '', PathVariable.PathAccept ),
 
-  EnumVariable( 'solver', 'Riemann solver', 'augrie',
-                allowed_values=('rusanov', 'fwave', 'augrie', 'hybrid', 'fwavevec')
+  EnumVariable( 'solver', 'Riemann solver', 'augrieGeoClaw', 
+                allowed_values=('rusanov', 'fwave', 'augrie', 'augrieGeoClaw', 'hybrid', 'fwavevec')
               ),
                   
   BoolVariable( 'vectorize', 'add pragmas to help vectorization (release only)', False ),
@@ -165,6 +165,16 @@ if env['parallelization'] in ['mpi', 'mpi_with_cuda']:
 else:
   if env['compiler'] == 'intel':
     env['CXX'] = 'icpc'
+    env['FORTRAN'] = env['F90'] = 'ifort'
+    env.Append(FORTRANFLAGS=['-fpp']) #run preprocessor before compiling
+    env.Append(F90FLAGS=['-fpp'])
+
+print env
+
+# link with ifort for geoclaw solver
+if env['solver'] == 'augrieGeoClaw':
+  env['LINK'] = env['FORTRAN']
+  env.Append(LINKFLAGS=['-nofor-main', '-cxxlib'])
 
 # eclipse specific flag
 env.Append(CCFLAGS=['-fmessage-length=0'])
@@ -219,6 +229,8 @@ if env['solver'] == 'fwave':
   env.Append(CPPDEFINES=['WAVE_PROPAGATION_SOLVER=1'])
 elif env['solver'] == 'augrie':
   env.Append(CPPDEFINES=['WAVE_PROPAGATION_SOLVER=2'])
+elif env['solver'] == 'augrieGeoClaw':
+  env.Append(CPPDEFINES=['WAVE_PROPAGATION_SOLVER=3'])
 elif env['solver'] == 'hybrid':
   env.Append(CPPDEFINES=['WAVE_PROPAGATION_SOLVER=0'])
 elif env['solver'] == 'fwavevec':
@@ -332,5 +344,10 @@ Export('env')
 SConscript('src/SConscript', variant_dir=build_dir, duplicate=0)
 Import('env')
 
+# remove .mod entries for the linker
+sourceFiles = []
+for sourceFile in env.src_files:
+    sourceFiles.append(sourceFile[0])
+
 # build the program
-env.Program('build/'+program_name, env.src_files)
+env.Program('build/'+program_name, sourceFiles)
