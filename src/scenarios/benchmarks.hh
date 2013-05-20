@@ -53,7 +53,7 @@ class SWE_DamBreakWetDryXaligned : public SWE_Scenario {
 
 	  virtual float endSimulation() { return (float) 4; };
 
-    virtual BoundaryType getBoundaryType(BoundaryEdge edge) { return WALL; };
+    virtual BoundaryType getBoundaryType(BoundaryEdge edge) { return OUTFLOW; };
 
     /** Get the boundary positions
      *
@@ -93,7 +93,7 @@ class SWE_DamBreakWetDryRotated: public SWE_Scenario {
 
 	  virtual float endSimulation() { return (float) 4; };
 
-    virtual BoundaryType getBoundaryType(BoundaryEdge edge) { return WALL; };
+    virtual BoundaryType getBoundaryType(BoundaryEdge edge) { return OUTFLOW; };
 
     /** Get the boundary positions
      *

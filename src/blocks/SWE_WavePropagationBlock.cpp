@@ -155,8 +155,8 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
                                                huNetUpdatesLeft[i-1][j-1], huNetUpdatesRight[i-1][j-1],
                                                maxEdgeSpeed );
 #else // WAVE_PROPAGATION_SOLVER!=3
-       double l_variablesLeft[3];
-       double l_variablesRight[3];
+       double l_variablesLeft[4];
+       double l_variablesRight[4];
        double l_netUpdatesLeft[3];
        double l_netUpdatesRight[3];
        double l_waveSpeeds[3];
@@ -164,11 +164,13 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
        // set up states
        l_variablesLeft[0] = h[i-1][j];
        l_variablesLeft[1] = hu[i-1][j];
-       l_variablesLeft[2] = b[i-1][j];
+       l_variablesLeft[2] = hv[i-1][j];
+       l_variablesLeft[3] = b[i-1][j];
 
        l_variablesRight[0] = h[i][j];
        l_variablesRight[1] = hu[i][j];
-       l_variablesRight[2] = b[i][j];
+       l_variablesRight[2] = hv[i][j];
+       l_variablesRight[3] = b[i][j];
 
        // call the fortran solver
        c_bind_geoclaw_riemann_aug_JCP( 1,
@@ -181,9 +183,11 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
        // set net updates
        hNetUpdatesLeft[i-1][j-1] = l_netUpdatesLeft[0];
        huNetUpdatesLeft[i-1][j-1] = l_netUpdatesLeft[1];
+       hvNetUpdatesLeft[i-1][j-1] = l_netUpdatesLeft[2];
 
        hNetUpdatesRight[i-1][j-1] = l_netUpdatesRight[0];
        huNetUpdatesRight[i-1][j-1] = l_netUpdatesRight[1];
+       hvNetUpdatesRight[i-1][j-1] = l_netUpdatesRight[2];
 
        // compute maximum wave speed of first and third wave
        maxEdgeSpeed = std::max( std::abs(l_waveSpeeds[0]), std::abs(l_waveSpeeds[2]) );
@@ -225,8 +229,8 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
                                                hvNetUpdatesBelow[i-1][j-1], hvNetUpdatesAbove[i-1][j-1],
                                                maxEdgeSpeed );
 #else // WAVE_PROPAGATION_SOLVER!=3
-       double l_variablesLeft[3];
-       double l_variablesRight[3];
+       double l_variablesLeft[4];
+       double l_variablesRight[4];
        double l_netUpdatesLeft[3];
        double l_netUpdatesRight[3];
        double l_waveSpeeds[3];
@@ -234,11 +238,13 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
        // set up states
        l_variablesLeft[0] = h[i][j-1];
        l_variablesLeft[1] = hv[i][j-1];
-       l_variablesLeft[2] = b[i][j-1];
+       l_variablesLeft[2] = hu[i][j-1];
+       l_variablesLeft[3] = b[i][j-1];
 
        l_variablesRight[0] = h[i][j];
        l_variablesRight[1] = hv[i][j];
-       l_variablesRight[2] = b[i][j];
+       l_variablesRight[2] = hu[i][j];
+       l_variablesRight[3] = b[i][j];
 
        // call the fortran solver
        c_bind_geoclaw_riemann_aug_JCP( 1,
@@ -251,9 +257,11 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
        // set net updates
        hNetUpdatesBelow[i-1][j-1] = l_netUpdatesLeft[0];
        hvNetUpdatesBelow[i-1][j-1] = l_netUpdatesLeft[1];
+       huNetUpdatesBelow[i-1][j-1] = l_netUpdatesLeft[2];
 
        hNetUpdatesAbove[i-1][j-1] = l_netUpdatesRight[0];
        hvNetUpdatesAbove[i-1][j-1] = l_netUpdatesRight[1];
+       huNetUpdatesAbove[i-1][j-1] = l_netUpdatesRight[2];
 
        // compute maximum wave speed of first and third wave
        maxEdgeSpeed = std::max( std::abs(l_waveSpeeds[0]), std::abs(l_waveSpeeds[2]) );
@@ -313,10 +321,10 @@ void SWE_WavePropagationBlock::updateUnknowns(float dt) {
                 	   + dt/dy * (hNetUpdatesAbove[i-1][j-1] + hNetUpdatesBelow[i-1][j]);
 			hu[i][j] -= dt/dx * (huNetUpdatesRight[i-1][j-1] + huNetUpdatesLeft[i][j-1]);
 			hv[i][j] -= dt/dy * (hvNetUpdatesAbove[i-1][j-1] + hvNetUpdatesBelow[i-1][j]);
-        	#if WAVE_PROPAGATION_SOLVER==3
-				hv[i][j] -= dt/dx * (hvNetUpdatesRight[i-1][j-1] + hvNetUpdatesLeft[i][j-1]);
-				hu[i][j] -= dt/dy * (huNetUpdatesAbove[i-1][j-1] + huNetUpdatesBelow[i-1][j]);
-        	#endif // WAVE_PROPAGATION_SOLVER==3
+#if WAVE_PROPAGATION_SOLVER==3
+      hv[i][j] -= dt/dx * (hvNetUpdatesRight[i-1][j-1] + hvNetUpdatesLeft[i][j-1]);
+      hu[i][j] -= dt/dy * (huNetUpdatesAbove[i-1][j-1] + huNetUpdatesBelow[i-1][j]);
+#endif // WAVE_PROPAGATION_SOLVER==3
 
 
 			if (h[i][j] < 0) {
