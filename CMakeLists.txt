@@ -29,16 +29,33 @@ SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY
 SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY
     ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all static libraries."
 )
+
+#-----------------------------------------------------------------------------
+# Build not shared on the Cray
+#-----------------------------------------------------------------------------
+if(NOT WIN32)
+    OPTION(BUILD_NOT_SHARED "Build the program not shared" ON)
+
+    if(BUILD_NOT_SHARED)
+        SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
+        SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+        SET(CMAKE_SKIP_RPATH ON)
+    endif(BUILD_NOT_SHARED)
+endif(NOT WIN32)
+
+#-----------------------------------------------------------------------------
+# Hide the advanced variables
+#-----------------------------------------------------------------------------
 MARK_AS_ADVANCED(
   CMAKE_RUNTIME_OUTPUT_DIRECTORY 
   CMAKE_LIBRARY_OUTPUT_DIRECTORY 
   CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+  BUILD_NOT_SHARED
 )
-
 #--------------------------------------------------------------------------
 # provide a parallelization option for user selection 
 #--------------------------------------------------------------------------
-set(ParallelMode "none" CACHE STRING "ParallelMode chosen by the user at configure time")
+set(ParallelMode "none" CACHE STRING "ParallelMode chosen by the user at configure time (none cuda mpi_with_cuda mpi)")
 
 set_property(CACHE ParallelMode PROPERTY STRINGS none cuda mpi_with_cuda mpi)
 
@@ -47,7 +64,7 @@ message(STATUS "ParallelMode='${ParallelMode}'")
 #--------------------------------------------------------------------------
 # provide a wave model option for user selection 
 #--------------------------------------------------------------------------
-set(WaveModel "AugRie" CACHE STRING "WaveModel chosen by the user at configure time")
+set(WaveModel "AugRie" CACHE STRING "WaveModel chosen by the user at configure time (Hybrid FWave AugRie AugRieGeoClaw Rusanov FWavevec)")
 set_property(CACHE WaveModel PROPERTY STRINGS Hybrid FWave AugRie AugRieGeoClaw Rusanov FWavevec)
 string( TOLOWER "${WaveModel}" WaveModel_lower )
 
@@ -63,6 +80,14 @@ else()
   message(STATUS "${WaveModel_lower} not yet implemented, using hybrid")
   add_definitions(-D"WAVE_PROPAGATION_SOLVER=0")
 endif (${WaveModel_lower} STREQUAL "hybrid")
+
+#--------------------------------------------------------------------------
+# Select the output writer
+#--------------------------------------------------------------------------
+OPTION(ENABLE_NETCDF "Enable NetCDF results writer" OFF)
+if(ENABLE_NETCDF)
+	add_definitions(-D"WRITENETCDF")
+endif(ENABLE_NETCDF)
 
 #--------------------------------------------------------------------------
 # include directories
@@ -81,6 +106,15 @@ set(SWE_SRCS
   src/SWE_RusanovBlock.cpp
   src/SWE_WavePropagationBlock.cpp
 )
+if(ENABLE_NETCDF)
+add_executable(swe_simple
+  src/blocks/SWE_Block.cpp
+  src/blocks/SWE_WavePropagationBlock.cpp
+  src/writer/NetCdfWriter.cpp
+  src/tools/Logger.cpp
+  src/examples/swe_simple.cpp
+)
+else(ENABLE_NETCDF)
 
 add_executable(swe_simple
   src/blocks/SWE_Block.cpp
@@ -89,6 +123,7 @@ add_executable(swe_simple
   src/tools/Logger.cpp
   src/examples/swe_simple.cpp
 )
+endif(ENABLE_NETCDF)
   
 #set(SWE_EXAMPLE_SIMPLE
 #  src/examples/swe_opengl.cpp

@@ -1,27 +1,8 @@
-/**
- * @file
+/*
  * This file is part of SWE.
  *
- * @author Alexander Breuer (breuera AT in.tum.de, http://www5.in.tum.de/wiki/index.php/Dipl.-Math._Alexander_Breuer)
+ *         Alexander Breuer (breuera AT in.tum.de, http://www5.in.tum.de/wiki/index.php/Dipl.-Math._Alexander_Breuer)
  *         Michael Bader (bader AT in.tum.de, http://www5.in.tum.de/wiki/index.php/Univ.-Prof._Dr._Michael_Bader)
- *
- * @section LICENSE
- *
- * SWE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * SWE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with SWE.  If not, see <http://www.gnu.org/licenses/>.
- *
- *
- * @section DESCRIPTION
  *
  * Basic setting of SWE, which uses a wave propagation solver and an artificial or ASAGI scenario on a single block.
  */
@@ -55,16 +36,211 @@
 
 #include "tools/help.hh"
 #include "tools/Logger.hh"
-#include "tools/ProgressBar.hh"
 
-/**
- * Main program for the simulation on a single SWE_WavePropagationBlock.
+/*
+ * A simple progress bar using stdout
+ */
+
+#include <cassert>
+#include <cmath>
+#include <ctime>
+#include <algorithm>
+#include <iostream>
+#include <limits>
+
+#ifndef WIN32
+ #include <unistd.h>
+ #include <sys/ioctl.h>
+#endif
+
+namespace tools
+{
+
+class ProgressBar
+{
+private:
+	/* Local rank (we only do work on rank 0) */
+	int m_rank;
+
+	/* Total amount of work */
+	float m_totalWork;
+
+	/* Progress bar initialization time */
+	time_t m_startTime;
+
+	/* Terminal size */
+	unsigned int m_terminalSize;
+
+	/* Rotating bar char */
+	unsigned char m_rotatingBar;
+
+public:
+	ProgressBar(float totalWork = 1., int rank = 0)
+		: m_rank(rank),
+		  m_totalWork(totalWork),
+		  m_startTime(time(0)),
+		  m_rotatingBar(0)
+	{
+		if (rank != 0)
+			return;
+
+#ifdef TIOCGSIZE
+		struct ttysize ts;
+		ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+		m_terminalSize = ts.ts_cols;
+#elif defined(TIOCGWINSZ)
+		struct winsize ts;
+		ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
+		m_terminalSize = ts.ws_col;
+#else
+		m_terminalSize = 0;
+#endif
+		if (m_terminalSize > 300)
+			// Probably an error due to MPI
+			m_terminalSize = MIN_TERM_SIZE;
+	}
+
+	/*
+	 * Update the progress bar with done as the amount of work already done
+	 */
+	void update(float done)
+	{
+		if (m_rank != 0 || m_terminalSize < MIN_TERM_SIZE)
+			return;
+
+		unsigned int printed = 2;
+		std::cout << '\r';
+		printed += printTimeLeft(done);
+		std::cout << ' ';
+		printed += printPercentage(done);
+		std::cout << ' ';
+		printProgressBar(done, m_terminalSize-printed-2);
+		std::cout << ' ';
+		printRotatingBar();
+		std::cout << std::flush;
+	}
+
+	void clear()
+	{
+		if (m_rank != 0 || m_terminalSize < MIN_TERM_SIZE)
+			return;
+
+		std::cout << '\r';
+		for (unsigned int i = 0; i < m_terminalSize; i++)
+			std::cout << ' ';
+		std::cout << '\r';
+	}
+
+private:
+	/*
+	 * Return the number of characters printed
+	 */
+	unsigned int printTimeLeft(float done)
+	{
+		float timeLeft;
+		if (done <= 0)
+			timeLeft = std::numeric_limits<float>::max();
+		else
+			timeLeft = (time(0) - m_startTime) * (m_totalWork - done) / done;
+
+		std::cout << "Time left: ";
+
+		if (timeLeft < 1) {
+			for (int i = 3; i < TIME_SIZE; i++)
+				std::cout << ' ';
+			std::cout << "< 1";
+		} else {
+			int digits = ceil(log(timeLeft)/log(10));
+			if (digits > TIME_SIZE) {
+				// Maximum number we can show
+				for (int i = 0; i < TIME_SIZE; i++)
+					std::cout << '9';
+			} else {
+				streamsize oldPrec = std::cout.precision();
+				std::ios::fmtflags oldFlags = std::cout.flags();
+				streamsize oldWidth = std::cout.width();
+
+				std::cout.precision(std::max(0, TIME_SIZE-digits-2));
+				std::cout.setf(std::ios::fixed);
+				std::cout.width(TIME_SIZE);
+
+				std::cout << timeLeft;
+
+				std::cout.precision(oldPrec);
+				std::cout.flags(oldFlags);
+				std::cout.width(oldWidth);
+			}
+		}
+
+		std::cout << " sec";
+
+		return 11+TIME_SIZE+4;
+	}
+
+	/*
+	 * Return the number of characters printed
+	 */
+	unsigned int printPercentage(float done)
+	{
+		int per = floor(done/m_totalWork*100);
+
+		std::cout << '(';
+
+		streamsize oldWidth = std::cout.width();
+
+		std::cout.width(3);
+		std::cout << per;
+
+		std::cout.width(oldWidth);
+
+		std::cout << "% done)";
+
+		return 1+3+7;
+	}
+
+	void printProgressBar(float done, unsigned int size)
+	{
+		if (size < 3)
+			return;
+
+		size -= 2; // leave space for []
+		unsigned int per = floor(done/m_totalWork * size);
+
+		std::cout << '[';
+
+		for (unsigned int i = 0; i < per; i++)
+			std::cout << '=';
+
+		if (per < size) {
+			std::cout << '>';
+			per++;
+		}
+
+		for (unsigned int i = per; i < size; i++)
+			std::cout << ' ';
+
+		std::cout << ']';
+	}
+
+	void printRotatingBar()
+	{
+		static const char* CHARS = "|/-\\";
+
+		std::cout << CHARS[m_rotatingBar];
+
+		m_rotatingBar = (m_rotatingBar + 1) % 4;
+	}
+
+	static const unsigned int MIN_TERM_SIZE = 80;
+	static const int TIME_SIZE = 8;
+};
+
+}
+
+/*
+ * Main program (obviously)
  */
 int main( int argc, char** argv ) {
-  /**
-   * Initialization.
-   */
-  // check if the necessary command line input parameters are given
   #ifndef READXML
   if(argc != 4) {
     std::cout << "Aborting ... please provide proper input parameters." << std::endl
@@ -74,20 +250,15 @@ int main( int argc, char** argv ) {
   }
   #endif
 
-  //! number of grid cells in x- and y-direction.
   int l_nX, l_nY;
-
-  //! l_baseName of the plots.
   std::string l_baseName;
 
-  // read command line parameters
   #ifndef READXML
   l_nY = l_nX = atoi(argv[1]);
   l_nY = atoi(argv[2]);
   l_baseName = std::string(argv[3]);
   #endif
 
-  // read xml file
   #ifdef READXML
   assert(false); //TODO: not implemented.
   if(argc != 2) {
@@ -116,7 +287,6 @@ int main( int argc, char** argv ) {
    * mean: 0.00217145586762 stdev: 0.245563641735 rms: 0.245573241263
    */
 
-  //simulation area
   float simulationArea[4];
   simulationArea[0] = -450000;
   simulationArea[1] = 6450000;
@@ -131,10 +301,8 @@ int main( int argc, char** argv ) {
   SWE_BathymetryDamBreakScenario l_scenario;
   #endif
 
-  //! number of checkpoints for visualization (at each checkpoint in time, an output file is written).
-  int l_numberOfCheckPoints = 20;
+  int ncpts = 20;
 
-  //! size of a single cell in x- and y-direction
   float l_dX, l_dY;
 
   // compute the size of a single cell
@@ -143,111 +311,88 @@ int main( int argc, char** argv ) {
 
   // create a single wave propagation block
   #ifndef CUDA
-  SWE_WavePropagationBlock l_wavePropgationBlock(l_nX,l_nY,l_dX,l_dY);
+  SWE_WavePropagationBlock wpb(l_nX,l_nY,l_dX,l_dY);
   #else
-  SWE_WavePropagationBlockCuda l_wavePropgationBlock(l_nX,l_nY,l_dX,l_dY);
+  SWE_WavePropagationBlockCuda wpb(l_nX,l_nY,l_dX,l_dY);
   #endif
 
-  //! origin of the simulation domain in x- and y-direction
   float l_originX, l_originY;
 
-  // get the origin from the scenario
   l_originX = l_scenario.getBoundaryPos(BND_LEFT);
   l_originY = l_scenario.getBoundaryPos(BND_BOTTOM);
 
-  // initialize the wave propagation block
-  l_wavePropgationBlock.initScenario(l_originX, l_originY, l_scenario);
+  wpb.initScenario(l_originX, l_originY, l_scenario);
 
-
-  //! time when the simulation ends.
   float l_endSimulation = l_scenario.endSimulation();
+  float* ckpts = new float[ncpts+1];
 
-  //! checkpoints when output files are written.
-  float* l_checkPoints = new float[l_numberOfCheckPoints+1];
-
-  // compute the checkpoints in time
-  for(int cp = 0; cp <= l_numberOfCheckPoints; cp++) {
-     l_checkPoints[cp] = cp*(l_endSimulation/l_numberOfCheckPoints);
+  for(int cp = 0; cp <= ncpts; cp++) {
+  ckpts[cp] = cp*(l_endSimulation/ncpts);
   }
 
-  // Init fancy progressbar
   tools::ProgressBar progressBar(l_endSimulation);
 
-  // write the output at time zero
   tools::Logger::logger.printOutputTime((float) 0.);
   progressBar.update(0.);
 
-  std::string l_fileName = generateBaseFileName(l_baseName,0,0);
-  //boundary size of the ghost layers
+  std::string fn = generateBaseFileName(l_baseName,0,0);
   io::BoundarySize l_boundarySize = {{1, 1, 1, 1}};
 #ifdef WRITENETCDF
   //construct a NetCdfWriter
-  io::NetCdfWriter l_writer( l_fileName,
-		  l_wavePropgationBlock.getBathymetry(),
+  io::NetCdfWriter l_writer( fn,
+		  wpb.getBathymetry(),
 		  l_boundarySize,
 		  l_nX, l_nY,
 		  l_dX, l_dY,
 		  l_originX, l_originY);
 #else
   // consturct a VtkWriter
-  io::VtkWriter l_writer( l_fileName,
-		  l_wavePropgationBlock.getBathymetry(),
+  io::VtkWriter l_writer( fn,
+		  wpb.getBathymetry(),
 		  l_boundarySize,
 		  l_nX, l_nY,
 		  l_dX, l_dY );
 #endif
   // Write zero time step
-  l_writer.writeTimeStep( l_wavePropgationBlock.getWaterHeight(),
-                          l_wavePropgationBlock.getDischarge_hu(),
-                          l_wavePropgationBlock.getDischarge_hv(),
+  l_writer.writeTimeStep( wpb.getWaterHeight(),
+                          wpb.getDischarge_hu(),
+                          wpb.getDischarge_hv(),
                           (float) 0.);
 
 
-  /**
-   * Simulation.
-   */
-  // print the start message and reset the wall clock time
   progressBar.clear();
   tools::Logger::logger.printStartMessage();
   tools::Logger::logger.initWallClockTime(time(NULL));
 
-  //! simulation time.
   float l_t = 0.0;
   progressBar.update(l_t);
 
-  unsigned int l_iterations = 0;
+  unsigned int iter = 0;
 
-  // loop over checkpoints
-  for(int c=1; c<=l_numberOfCheckPoints; c++) {
+  for(int c=1; c<=ncpts; c++) {
 
-    // do time steps until next checkpoint is reached
-    while( l_t < l_checkPoints[c] ) {
-      // set values in ghost cells:
-      l_wavePropgationBlock.setGhostLayer();
+    while( l_t < ckpts[c] ) {
+      wpb.setGhostLayer();
       
-      // reset the cpu clock
       tools::Logger::logger.resetCpuClockToCurrentTime();
 
       // approximate the maximum time step
       // TODO: This calculation should be replaced by the usage of the wave speeds occuring during the flux computation
       // Remark: The code is executed on the CPU, therefore a "valid result" depends on the CPU-GPU-synchronization.
-//      l_wavePropgationBlock.computeMaxTimestep();
+//      wpb.computeMaxTimestep();
 
       // compute numerical flux on each edge
-      l_wavePropgationBlock.computeNumericalFluxes();
+      wpb.computeNumericalFluxes();
 
-      //! maximum allowed time step width.
-      float l_maxTimeStepWidth = l_wavePropgationBlock.getMaxTimestep();
+      float l_maxTimeStepWidth = wpb.getMaxTimestep();
 
-      // update the cell values
-      l_wavePropgationBlock.updateUnknowns(l_maxTimeStepWidth);
+      wpb.updateUnknowns(l_maxTimeStepWidth);
 
-      // update the cpu time in the logger
       tools::Logger::logger.updateCpuTime();
 
       // update simulation time with time step width.
       l_t += l_maxTimeStepWidth;
-      l_iterations++;
+      iter++;
 
       // print the current simulation time
       progressBar.clear();
@@ -261,27 +406,22 @@ int main( int argc, char** argv ) {
     progressBar.update(l_t);
 
     // write output
-    l_writer.writeTimeStep( l_wavePropgationBlock.getWaterHeight(),
-                            l_wavePropgationBlock.getDischarge_hu(),
-                            l_wavePropgationBlock.getDischarge_hv(),
+    l_writer.writeTimeStep( wpb.getWaterHeight(),
+                            wpb.getDischarge_hu(),
+                            wpb.getDischarge_hv(),
                             l_t);
   }
 
-  /**
-   * Finalize.
-   */
-  // write the statistics message
   progressBar.clear();
   tools::Logger::logger.printStatisticsMessage();
 
-  // print the cpu time
   tools::Logger::logger.printCpuTime();
 
   // print the wall clock time (includes plotting)
   tools::Logger::logger.printWallClockTime(time(NULL));
 
   // printer iteration counter
-  tools::Logger::logger.printIterationsDone(l_iterations);
+  tools::Logger::logger.printIterationsDone(iter);
 
   return 0;
 }
