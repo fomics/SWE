@@ -3,4 +3,4 @@
 	url = git://github.com/fomics/swe_solvers.git
 [submodule "submodules/geoclaw"]
 	path = submodules/geoclaw
-	url = git://github.com/breuera/geoclaw.git
+	url = git://github.com/fomics/geoclaw.git
