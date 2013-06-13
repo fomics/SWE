@@ -35,8 +35,10 @@
 #include <iostream>
 #include <limits>
 
-#include <unistd.h>
-#include <sys/ioctl.h>
+#ifndef WIN32
+ #include <unistd.h>
+ #include <sys/ioctl.h>
+#endif
 
 namespace tools
 {
@@ -135,7 +137,7 @@ private:
 				std::cout << ' ';
 			std::cout << "< 1";
 		} else {
-			int digits = ceil(log(timeLeft)/log(10));
+			int digits = ceil(log(timeLeft)/log(10.0));
 			if (digits > TIME_SIZE) {
 				// Maximum number we can show
 				for (int i = 0; i < TIME_SIZE; i++)

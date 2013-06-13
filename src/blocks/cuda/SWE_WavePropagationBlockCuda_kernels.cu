@@ -32,7 +32,7 @@
 #include <cmath>
 #include <cstdio>
 
-#include "solvers/FWaveCuda.h"
+#include "solver/FWaveCuda.h"
 
 /**
  * The compute net-updates kernel calls the solver for a defined CUDA-Block and does a reduction over the computed wave speeds within this block.
