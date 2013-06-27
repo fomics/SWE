@@ -29,10 +29,12 @@
 #define TOOLS_ARGS_H
 
 #include <getopt.h>
+#include <algorithm>
 #include <map>
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <vector>
 
 namespace tools
 {
