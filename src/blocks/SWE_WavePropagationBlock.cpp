@@ -32,10 +32,6 @@
 #include <string>
 #include <limits>
 
-#ifdef LOOP_OPENMP
-#include <omp.h>
-#endif
-
 /**
  * Constructor of a SWE_WavePropagationBlock.
  *
@@ -114,16 +110,6 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
 
 	// compute the net-updates for the vertical edges
 
-#ifdef LOOP_OPENMP
-#pragma omp parallel
-{
-
-	float l_maxWaveSpeed = (float) 0.;
-	solver::Hybrid<float> wavePropagationSolver;
-
-	// Use OpenMP for the outer loop
-	#pragma omp for
-#endif // LOOP_OPENMP
 	for(int i = 1; i < nx+2; i++) {
 
 
@@ -149,22 +135,13 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
 				#error "Solver not implemented in SWE_WavePropagationBlock"
 			#endif // WAVE_PROPAGATION_SOLVER!=3
 
-			#ifdef LOOP_OPENMP
-				//update the thread-local maximum wave speed
-				l_maxWaveSpeed = std::max(l_maxWaveSpeed, maxEdgeSpeed);
-			#else // LOOP_OPENMP
-				//update the maximum wave speed
-				maxWaveSpeed = std::max(maxWaveSpeed, maxEdgeSpeed);
-			#endif // LOOP_OPENMP
+			//update the maximum wave speed
+			maxWaveSpeed = std::max(maxWaveSpeed, maxEdgeSpeed);
 		}
 	}
 
 	// compute the net-updates for the horizontal edges
 
-#ifdef LOOP_OPENMP
-	// Use OpenMP for the outer loop
-	#pragma omp for
-#endif // LOOP_OPENMP
 	for(int i = 1; i < nx+1; i++) {
 
 #if  WAVE_PROPAGATION_SOLVER==4
@@ -188,24 +165,10 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
 				#error "Solver not implemented in SWE_WavePropagationBlock"
 			#endif // WAVE_PROPAGATION_SOLVER!=3
 
-			#ifdef LOOP_OPENMP
-				//update the thread-local maximum wave speed
-				l_maxWaveSpeed = std::max(l_maxWaveSpeed, maxEdgeSpeed);
-			#else // LOOP_OPENMP
-				//update the maximum wave speed
-				maxWaveSpeed = std::max(maxWaveSpeed, maxEdgeSpeed);
-			#endif // LOOP_OPENMP
+			//update the maximum wave speed
+			maxWaveSpeed = std::max(maxWaveSpeed, maxEdgeSpeed);
 		}
 	}
-
-#ifdef LOOP_OPENMP
-	#pragma omp critical
-	{
-		maxWaveSpeed = std::max(l_maxWaveSpeed, maxWaveSpeed);
-	}
-
-} // #pragma omp parallel
-#endif
 
 	if(maxWaveSpeed > 0.00001) {
 		//TODO zeroTol
@@ -236,9 +199,6 @@ void SWE_WavePropagationBlock::computeNumericalFluxes() {
  */
 void SWE_WavePropagationBlock::updateUnknowns(float dt) {
   //update cell averages with the net-updates
-#ifdef LOOP_OPENMP
-	#pragma omp parallel for
-#endif // LOOP_OPENMP
 	for(int i = 1; i < nx+1; i++) {
 
 #ifdef VECTORIZE
