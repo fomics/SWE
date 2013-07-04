@@ -1,4 +1,4 @@
 [submodule "submodules/swe_solvers"]
 	path = submodules/swe_solvers
-	url = git://github.com/biddisco/swe_solvers.git
+	url = git://github.com/fomics/swe_solvers.git
 
