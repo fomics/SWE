@@ -1,0 +1,12 @@
+/**
+ * @file
+ * This file is part of SWE.
+ *
+ * @author Michael Bader, Kaveh Rahnema, Tobias Schnabel
+ * @author Sebastian Rettenberger (rettenbs AT in.tum.de, http://www5.in.tum.de/wiki/index.php/Sebastian_Rettenberger,_M.Sc.)
+ *
+ * @section LICENSE
+ * @section DESCRIPTION
+ * TODO
+ */
+
