@@ -4,9 +4,18 @@
  *
  * @author Michael Bader, Kaveh Rahnema, Tobias Schnabel
  * @author Sebastian Rettenberger (rettenbs AT in.tum.de, http://www5.in.tum.de/wiki/index.php/Sebastian_Rettenberger,_M.Sc.)
+ * @author JB. During his training excercise
  *
  * @section LICENSE
+ *
+ * Copying is allowed in any form providing you 
+ * send cash to me, or use paypal, or whatever.
+ *
  * @section DESCRIPTION
+ *
+ * Solves stuff very very quickly
+ * amazes everyone who uses it.
+ *
  * TODO
  */
 
