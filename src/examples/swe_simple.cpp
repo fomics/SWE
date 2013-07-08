@@ -37,12 +37,6 @@
 #include "blocks/cuda/SWE_WavePropagationBlockCuda.hh"
 #endif
 
-#ifdef WRITENETCDF
-#include "writer/NetCdfWriter.hh"
-#else
-#include "writer/VtkWriter.hh"
-#endif
-
 #ifdef ASAGI
 #include "scenarios/SWE_AsagiScenario.hh"
 #else
@@ -57,6 +51,12 @@
 #include "tools/help.hh"
 #include "tools/Logger.hh"
 #include "tools/ProgressBar.hh"
+
+#ifdef WRITENETCDF
+#include "writer/NetCdfWriter.hh"
+#else
+#include "writer/VtkWriter.hh"
+#endif
 
 /**
  * Main program for the simulation on a single SWE_WavePropagationBlock.
