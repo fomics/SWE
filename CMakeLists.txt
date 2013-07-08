@@ -102,7 +102,11 @@ add_executable(swe_simple
   ${SWE_SRCS}
 )
 
-add_subdirectory(test)
+include(CTest)
+if (BUILD_TESTING)
+  enable_testing()
+  add_subdirectory(test)
+endif(BUILD_TESTING)
 
 #--------------------------------------------------------------------------
 # mpi  example
