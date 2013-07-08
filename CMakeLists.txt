@@ -77,10 +77,12 @@ endif (${WaveModel_lower} STREQUAL "hybrid")
 #--------------------------------------------------------------------------
 OPTION(ENABLE_NETCDF "Enable NetCDF results writer" OFF)
 if(ENABLE_NETCDF)
-	add_definitions(-D"WRITENETCDF")
+  LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+  FIND_PACKAGE(NetCDF REQUIRED)
+  add_definitions(-D"WRITENETCDF")
+  include_directories(${NETCDF_INCLUDES})
+  set(SWE_NETCDF_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/writer/NetCdfWriter.cpp)
 endif(ENABLE_NETCDF)
-
-#--------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------
 # provide parallelization options for user selection 
@@ -119,15 +121,8 @@ set(SWE_SRCS
   src/tools/Logger.cpp
   src/examples/swe_simple.cpp
   ${WIN32_SRCS}
-
+  ${SWE_NETCDF_SRCS}
 )
-if(ENABLE_NETCDF)
-  FIND_PACKAGE(NetCDF REQUIRED)
-  set(SWE_SRCS 
-    ${SWE_SRCS}
-    src/writer/NetCdfWriter.cpp
-  )
-endif(ENABLE_NETCDF)
 
 #--------------------------------------------------------------------------
 # simple non mpi example
@@ -136,6 +131,8 @@ endif(ENABLE_NETCDF)
 add_executable(swe_simple
   ${SWE_SRCS}
 )
+
+target_link_libraries(swe_simple ${NETCDF_LIBRARIES})
 
 include(CTest)
 if (BUILD_TESTING)
@@ -157,7 +154,7 @@ if (SWE_ENABLE_MPI)
     src/examples/swe_mpi.cpp
   )
 
-  target_link_libraries(swe_mpi ${MPI_LIBRARY})
+  target_link_libraries(swe_mpi ${MPI_LIBRARY} ${NETCDF_LIBRARIES})
 
 endif (SWE_ENABLE_MPI)
   
