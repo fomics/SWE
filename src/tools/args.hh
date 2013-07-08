@@ -165,7 +165,7 @@ public:
 		while (true) {
 			int optionIndex = 0;
 
-			int c = getopt_long(argc, argv, shortOptions.str().c_str(),
+			int c = getopt_long(argc, (char **)(argv), shortOptions.str().c_str(),
 				&m_options[0], &optionIndex);
 
 			if (c < 0)

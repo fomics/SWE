@@ -69,7 +69,6 @@ if (SWE_ENABLE_CUDA)
  find_package(CUDA REQUIRED)
 endif (SWE_ENABLE_CUDA)
 
-
 #--------------------------------------------------------------------------
 # include directories
 #
@@ -81,11 +80,18 @@ include_directories(
   submodules/swe_solvers/src
 )
 
+if(WIN32)
+  include_directories(src/tools/win32)
+  set(WIN32_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/win32/getopt.c)
+endif(WIN32)
+
 set(SWE_SRCS 
-  src/examples/swe_wavepropagation.cpp
-  src/SWE_Block.cpp
-  src/SWE_RusanovBlock.cpp
-  src/SWE_WavePropagationBlock.cpp
+  src/blocks/SWE_Block.cpp
+  src/blocks/SWE_WavePropagationBlock.cpp
+  src/writer/VtkWriter.cpp
+  src/tools/Logger.cpp
+  src/examples/swe_simple.cpp
+  ${WIN32_SRCS}
 )
 
 #--------------------------------------------------------------------------
@@ -93,11 +99,7 @@ set(SWE_SRCS
 #--------------------------------------------------------------------------
 
 add_executable(swe_simple
-  src/blocks/SWE_Block.cpp
-  src/blocks/SWE_WavePropagationBlock.cpp
-  src/writer/VtkWriter.cpp
-  src/tools/Logger.cpp
-  src/examples/swe_simple.cpp
+  ${SWE_SRCS}
 )
 
 #--------------------------------------------------------------------------
@@ -195,41 +197,5 @@ if (SWE_ENABLE_CUDA AND SWE_ENABLE_MPI)
     ${CUDA_LIBRARIES}
   )
 
-
-
-
 endif (SWE_ENABLE_CUDA AND SWE_ENABLE_MPI)
   
-#set(SWE_EXAMPLE_SIMPLE
-#  src/examples/swe_opengl.cpp
-#)
-
-set(SWE_HDRS
-  src/scenarios/SWE_AsagiScenario.hpp
-  src/scenarios/SWE_Scenario.h
-  src/scenarios/SWE_simple_scenarios.h
-  src/solvers/augrie.hpp
-  src/solvers/augriegeoclaw.hpp
-  src/solvers/fwave.hpp
-  src/solvers/FWaveCuda.h
-  src/solvers/hybrid.hpp
-  src/solvers/wavepropagation.hpp
-  src/tools/Logger.hpp
-)
-
-#      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='CUDA|Win32'">compute_20,sm_20</CodeGeneration>
-
-set(SWE_CUDA_HDRS
-  src/swe_block.hh
-  src/swe_blockcuda.hh
-  src/SWE_BlockCUDA_kernels.hh
-  src/swe_rusanovblock.hh
-  src/SWE_RusanovBlockCUDA.hh
-  src/SWE_RusanovBlockCUDA_kernels.hh
-  src/swe_wavepropagationblock.hh
-)
-
-#add_executable(SWE 
-#  ${SWE_SRCS}
-#)
-
