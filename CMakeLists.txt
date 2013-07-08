@@ -29,12 +29,29 @@ SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY
 SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY
     ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all static libraries."
 )
+
+#-----------------------------------------------------------------------------
+# Build not shared on the Cray
+#-----------------------------------------------------------------------------
+if(NOT WIN32)
+    OPTION(BUILD_NOT_SHARED "Build the program not shared" ON)
+
+    if(BUILD_NOT_SHARED)
+        SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
+        SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+        SET(CMAKE_SKIP_RPATH ON)
+    endif(BUILD_NOT_SHARED)
+endif(NOT WIN32)
+
+#-----------------------------------------------------------------------------
+# Hide the advanced variables
+#-----------------------------------------------------------------------------
 MARK_AS_ADVANCED(
   CMAKE_RUNTIME_OUTPUT_DIRECTORY 
   CMAKE_LIBRARY_OUTPUT_DIRECTORY 
   CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+  BUILD_NOT_SHARED
 )
-
 #--------------------------------------------------------------------------
 # provide a wave model option for user selection 
 #--------------------------------------------------------------------------
@@ -54,6 +71,16 @@ else()
   message(STATUS "${WaveModel_lower} not yet implemented, using hybrid")
   add_definitions(-D"WAVE_PROPAGATION_SOLVER=0")
 endif (${WaveModel_lower} STREQUAL "hybrid")
+
+#--------------------------------------------------------------------------
+# Select the output writer
+#--------------------------------------------------------------------------
+OPTION(ENABLE_NETCDF "Enable NetCDF results writer" OFF)
+if(ENABLE_NETCDF)
+	add_definitions(-D"WRITENETCDF")
+endif(ENABLE_NETCDF)
+
+#--------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------
 # provide parallelization options for user selection 
@@ -92,7 +119,15 @@ set(SWE_SRCS
   src/tools/Logger.cpp
   src/examples/swe_simple.cpp
   ${WIN32_SRCS}
+
 )
+if(ENABLE_NETCDF)
+  FIND_PACKAGE(NetCDF REQUIRED)
+  set(SWE_SRCS 
+    ${SWE_SRCS}
+    src/writer/NetCdfWriter.cpp
+  )
+endif(ENABLE_NETCDF)
 
 #--------------------------------------------------------------------------
 # simple non mpi example
@@ -202,6 +237,9 @@ if (SWE_ENABLE_CUDA AND SWE_ENABLE_MPI)
     ${MPI_LIBRARY}
     ${CUDA_LIBRARIES}
   )
+
+
+
 
 endif (SWE_ENABLE_CUDA AND SWE_ENABLE_MPI)
   
