@@ -129,7 +129,9 @@ public:
 		struct optionInfo i = {longOption, value, description, required};
 		m_optionInfo.push_back(i);
 
-		struct option o = {m_optionInfo.back().longOption.c_str(), argument, 0, shortOption};
+                char *sss = new char[128];
+                strcpy(sss,m_optionInfo.back().longOption.c_str());
+		struct option o = {sss, argument, 0, shortOption};
 		m_options.push_back(o);
 	}
 
