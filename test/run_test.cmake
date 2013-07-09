@@ -1,0 +1,10 @@
+macro(EXEC_CHECK CMD A1 A2 A3)
+    execute_process(COMMAND ${CMD} ${A1} ${A2} ${A3} RESULT_VARIABLE CMD_RESULT)
+    if(CMD_RESULT)
+        message("Result was ${CMD_RESULT}")
+        message(FATAL_ERROR "Error running ${CMD}")
+    endif()
+endmacro()
+
+EXEC_CHECK(${CMD1} ${ARG1} ${ARG2} ${ARG3})
+EXEC_CHECK(${CMD2} ${ARG4} ${ARG5} ${ARG6})
