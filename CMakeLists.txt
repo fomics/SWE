@@ -73,14 +73,6 @@ else()
 endif (${WaveModel_lower} STREQUAL "hybrid")
 
 #--------------------------------------------------------------------------
-# Select the output writer
-#--------------------------------------------------------------------------
-OPTION(ENABLE_NETCDF "Enable NetCDF results writer" OFF)
-if(ENABLE_NETCDF)
-	add_definitions(-D"WRITENETCDF")
-endif(ENABLE_NETCDF)
-
-#--------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------
 # provide parallelization options for user selection 
@@ -113,15 +105,6 @@ set(SWE_SRCS
   src/SWE_RusanovBlock.cpp
   src/SWE_WavePropagationBlock.cpp
 )
-if(ENABLE_NETCDF)
-add_executable(swe_simple
-  src/blocks/SWE_Block.cpp
-  src/blocks/SWE_WavePropagationBlock.cpp
-  src/writer/NetCdfWriter.cpp
-  src/tools/Logger.cpp
-  src/examples/swe_simple.cpp
-)
-else(ENABLE_NETCDF)
 
 #--------------------------------------------------------------------------
 # simple non mpi example
@@ -134,7 +117,6 @@ add_executable(swe_simple
   src/tools/Logger.cpp
   src/examples/swe_simple.cpp
 )
-endif(ENABLE_NETCDF)
 
 #--------------------------------------------------------------------------
 # mpi  example
@@ -236,36 +218,3 @@ if (SWE_ENABLE_CUDA AND SWE_ENABLE_MPI)
 
 endif (SWE_ENABLE_CUDA AND SWE_ENABLE_MPI)
   
-#set(SWE_EXAMPLE_SIMPLE
-#  src/examples/swe_opengl.cpp
-#)
-
-set(SWE_HDRS
-  src/scenarios/SWE_AsagiScenario.hpp
-  src/scenarios/SWE_Scenario.h
-  src/scenarios/SWE_simple_scenarios.h
-  src/solvers/augrie.hpp
-  src/solvers/augriegeoclaw.hpp
-  src/solvers/fwave.hpp
-  src/solvers/FWaveCuda.h
-  src/solvers/hybrid.hpp
-  src/solvers/wavepropagation.hpp
-  src/tools/Logger.hpp
-)
-
-#      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='CUDA|Win32'">compute_20,sm_20</CodeGeneration>
-
-set(SWE_CUDA_HDRS
-  src/swe_block.hh
-  src/swe_blockcuda.hh
-  src/SWE_BlockCUDA_kernels.hh
-  src/swe_rusanovblock.hh
-  src/SWE_RusanovBlockCUDA.hh
-  src/SWE_RusanovBlockCUDA_kernels.hh
-  src/swe_wavepropagationblock.hh
-)
-
-#add_executable(SWE 
-#  ${SWE_SRCS}
-#)
-
