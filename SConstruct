@@ -76,6 +76,8 @@ vars.AddVariables(
                 allowed_values=('none', 'cuda', 'mpi_with_cuda', 'mpi')
               ),
 
+  BoolVariable( 'openmp', 'compile with OpenMP parallelization enabled', False ), 
+
   EnumVariable( 'computeCapability', 'optional architecture/compute capability of the CUDA card', 'sm_20',
                 allowed_values=('sm_10', 'sm_11', 'sm_12','sm_13',
                                 'sm_20', 'sm_21', 'sm_22', 'sm_23',
@@ -243,6 +245,11 @@ elif env['solver'] == 'hybrid':
   env.Append(CPPDEFINES=['WAVE_PROPAGATION_SOLVER=0'])
 elif env['solver'] == 'fwavevec':
   env.Append(CPPDEFINES=['WAVE_PROPAGATION_SOLVER=4'])
+
+# OpenMP parallelism?
+if env['compiler'] == 'intel' and env['openmp']:
+  env.Append(CCFLAGS=['-openmp'])
+  env.Append(LINKFLAGS=['-openmp'])
 
 # set the precompiler flags for CUDA
 if env['parallelization'] in ['cuda', 'mpi_with_cuda']:
